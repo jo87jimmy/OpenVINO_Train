@@ -6,7 +6,10 @@
       "WebFetch(domain:github.com)",
       "WebSearch",
       "WebFetch(domain:anomalib.readthedocs.io)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python -c \"import anomalib; print\\(anomalib.__version__\\)\")",
+      "Bash(pip show anomalib)",
+      "Bash(python -c \"from anomalib.data import MVTecAD; import inspect; print\\(inspect.getfile\\(MVTecAD\\)\\)\")"
     ]
   }
 }

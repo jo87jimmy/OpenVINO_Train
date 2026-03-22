@@ -86,6 +86,12 @@ def train_single(model_name, category, data_root, output_dir, device_args):
         augmentations=Resize(IMG_SIZE),
     )
 
+    # ── 若本地資料已存在，跳過下載 (避免 HF Hub 404 錯誤) ──
+    local_data_path = Path(data_root) / category
+    if local_data_path.exists() and (local_data_path / "train").exists():
+        print(f"  📂 使用本地資料: {local_data_path}")
+        datamodule.prepare_data = lambda: None
+
     # ── 訓練輸出路徑 ──
     run_dir = os.path.join(output_dir, model_name, category)
     os.makedirs(run_dir, exist_ok=True)
