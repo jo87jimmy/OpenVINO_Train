@@ -4,9 +4,9 @@
 在 MVTec Anomaly Detection 資料集上進行簡單訓練，產生權重檔供 benchmark 使用。
 
 Usage:
-    python train_anomalib_baselines.py --data_root ./data-mvtec/mvtec --output_dir ./anomalib_results
-    python train_anomalib_baselines.py --data_root ./data-mvtec/mvtec --models PatchCore RD4AD
-    python train_anomalib_baselines.py --data_root ./data-mvtec/mvtec --categories bottle carpet
+    python train_anomalib_baselines.py --data_root ./mvtec --output_dir ./anomalib_results
+    python train_anomalib_baselines.py --data_root ./mvtec --models PatchCore RD4AD
+    python train_anomalib_baselines.py --data_root ./mvtec --categories bottle carpet
 """
 
 import os
@@ -30,9 +30,21 @@ import torch
 # 常數定義
 # =====================================================================
 MVTEC_CATEGORIES = [
-    "capsule", "bottle", "carpet", "leather", "pill",
-    "transistor", "tile", "cable", "zipper", "toothbrush",
-    "metal_nut", "hazelnut", "screw", "grid", "wood",
+    "capsule",
+    "bottle",
+    "carpet",
+    "leather",
+    "pill",
+    "transistor",
+    "tile",
+    "cable",
+    "zipper",
+    "toothbrush",
+    "metal_nut",
+    "hazelnut",
+    "screw",
+    "grid",
+    "wood",
 ]
 
 # 模型名稱 → (Anomalib 類別, 預設 epoch 數)
@@ -107,7 +119,9 @@ def train_single(model_name, category, data_root, output_dir, device_args):
 
     if ckpt_path:
         # 複製到標準路徑方便後續使用
-        standard_path = os.path.join(output_dir, "checkpoints", model_name, f"{category}.ckpt")
+        standard_path = os.path.join(
+            output_dir, "checkpoints", model_name, f"{category}.ckpt"
+        )
         os.makedirs(os.path.dirname(standard_path), exist_ok=True)
         shutil.copy2(ckpt_path, standard_path)
         print(f"  📦 Checkpoint 已存至: {standard_path}")
@@ -141,7 +155,9 @@ def train_all(args):
     print(f"  類別: {categories}")
     print(f"  資料集路徑: {args.data_root}")
     print(f"  輸出路徑: {args.output_dir}")
-    print(f"  GPU: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"  GPU: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}"
+    )
     print("=" * 70)
 
     # 記錄所有 checkpoint 路徑
@@ -196,23 +212,33 @@ if __name__ == "__main__":
         description="使用 Anomalib 訓練 Baseline 模型 (PatchCore, CFlow, RD4AD, EfficientAD)"
     )
     parser.add_argument(
-        "--data_root", type=str, default="./data-mvtec/mvtec",
+        "--data_root",
+        type=str,
+        default="./mvtec",
         help="MVTec 資料集根目錄 (包含各類別資料夾)",
     )
     parser.add_argument(
-        "--output_dir", type=str, default="./anomalib_results",
+        "--output_dir",
+        type=str,
+        default="./anomalib_results",
         help="訓練結果與 checkpoint 輸出目錄",
     )
     parser.add_argument(
-        "--models", nargs="+", default=None,
+        "--models",
+        nargs="+",
+        default=None,
         help="要訓練的模型 (預設全部): PatchCore CFlow RD4AD EfficientAD",
     )
     parser.add_argument(
-        "--categories", nargs="+", default=None,
+        "--categories",
+        nargs="+",
+        default=None,
         help="要訓練的 MVTec 類別 (預設全部15類)",
     )
     parser.add_argument(
-        "--precision", type=str, default=None,
+        "--precision",
+        type=str,
+        default=None,
         help="訓練精度 (e.g., 16-mixed, 32)",
     )
 

@@ -79,7 +79,7 @@ else:
 # 4. 掛載 MVTec 資料集
 # ===========================
 
-CORRECT_DATA_PATH = "/kaggle/input/data-mvtec/mvtec"
+CORRECT_DATA_PATH = "/kaggle/input/mvtec"
 LINK_NAME = "mvtec"
 
 if os.path.lexists(LINK_NAME):

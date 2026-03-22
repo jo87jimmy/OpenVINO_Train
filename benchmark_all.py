@@ -16,8 +16,8 @@
   - Inference Time (ms), FPS
 
 Usage:
-    python benchmark_all.py --data_root ./data-mvtec/mvtec --obj_id -1
-    python benchmark_all.py --data_root ./data-mvtec/mvtec --categories bottle carpet
+    python benchmark_all.py --data_root ./mvtec --obj_id -1
+    python benchmark_all.py --data_root ./mvtec --categories bottle carpet
 """
 
 import os
@@ -51,21 +51,33 @@ from anomalib.engine import Engine
 # 常數
 # =====================================================================
 MVTEC_CATEGORIES = [
-    "capsule", "bottle", "carpet", "leather", "pill",
-    "transistor", "tile", "cable", "zipper", "toothbrush",
-    "metal_nut", "hazelnut", "screw", "grid", "wood",
+    "capsule",
+    "bottle",
+    "carpet",
+    "leather",
+    "pill",
+    "transistor",
+    "tile",
+    "cable",
+    "zipper",
+    "toothbrush",
+    "metal_nut",
+    "hazelnut",
+    "screw",
+    "grid",
+    "wood",
 ]
 
 IMG_SIZE = 256
 
 # 模型顯示順序與顏色
 MODEL_DISPLAY = {
-    "PatchCore":   "#1f77b4",
-    "CFlow":       "#ff7f0e",
-    "RD4AD":       "#2ca02c",
+    "PatchCore": "#1f77b4",
+    "CFlow": "#ff7f0e",
+    "RD4AD": "#2ca02c",
     "EfficientAD": "#9467bd",
-    "DRAEM":       "#e74c3c",
-    "Ours":        "#17becf",
+    "DRAEM": "#e74c3c",
+    "Ours": "#17becf",
 }
 
 
@@ -78,6 +90,7 @@ def setup_seed(seed=111):
         torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
     import random
+
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -196,7 +209,9 @@ class AnomalibWrapper:
             # 如果尺寸不匹配，resize
             if anomaly_map.shape[-2:] != (H, W):
                 am_tensor = torch.from_numpy(anomaly_map).unsqueeze(1).float()
-                am_tensor = F.interpolate(am_tensor, size=(H, W), mode="bilinear", align_corners=False)
+                am_tensor = F.interpolate(
+                    am_tensor, size=(H, W), mode="bilinear", align_corners=False
+                )
                 anomaly_map = am_tensor.squeeze(1).numpy()
         else:
             # fallback: 用零圖代替
@@ -284,7 +299,9 @@ def benchmark_model_draem(wrapper, data_root, category, device, n_repeat=3):
         print(f"    ⚠️ 測試資料不存在: {test_path}")
         return None
 
-    dataset = MVTecDRAEM_Test_Visual_Dataset(test_path, resize_shape=[IMG_SIZE, IMG_SIZE])
+    dataset = MVTecDRAEM_Test_Visual_Dataset(
+        test_path, resize_shape=[IMG_SIZE, IMG_SIZE]
+    )
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
 
     # ── 暖機 ──
@@ -353,7 +370,9 @@ def benchmark_model_anomalib(wrapper, data_root, category, device, n_repeat=3):
         print(f"    ⚠️ 測試資料不存在: {test_path}")
         return None
 
-    dataset = MVTecDRAEM_Test_Visual_Dataset(test_path, resize_shape=[IMG_SIZE, IMG_SIZE])
+    dataset = MVTecDRAEM_Test_Visual_Dataset(
+        test_path, resize_shape=[IMG_SIZE, IMG_SIZE]
+    )
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
 
     # ── 暖機 ──
@@ -490,12 +509,8 @@ def load_models(args, category, device):
         print(f"    ⚠️ 跳過 DRAEM (Teacher): checkpoint 不存在")
 
     # ── 3. Ours (Student) ──
-    student_recon_path = os.path.join(
-        args.student_dir, f"{category}_best_recon.pckl"
-    )
-    student_seg_path = os.path.join(
-        args.student_dir, f"{category}_best_seg.pckl"
-    )
+    student_recon_path = os.path.join(args.student_dir, f"{category}_best_recon.pckl")
+    student_seg_path = os.path.join(args.student_dir, f"{category}_best_seg.pckl")
     if os.path.exists(student_recon_path) and os.path.exists(student_seg_path):
         try:
             wrapper = DRAEMWrapper(
@@ -538,17 +553,31 @@ def plot_metric_comparison(all_results, metric_name, save_path, higher_is_better
     for i, model_name in enumerate(model_names):
         values = []
         for cat in categories:
-            if model_name in all_results[cat] and all_results[cat][model_name] is not None:
+            if (
+                model_name in all_results[cat]
+                and all_results[cat][model_name] is not None
+            ):
                 values.append(all_results[cat][model_name].get(metric_name, 0.0))
             else:
                 values.append(0.0)
 
         color = MODEL_DISPLAY.get(model_name, "#333333")
         offset = (i - len(model_names) / 2 + 0.5) * width
-        bars = ax.bar(x + offset, values, width, label=model_name, color=color, alpha=0.85, edgecolor="black", linewidth=0.5)
+        bars = ax.bar(
+            x + offset,
+            values,
+            width,
+            label=model_name,
+            color=color,
+            alpha=0.85,
+            edgecolor="black",
+            linewidth=0.5,
+        )
 
     direction = "Higher is Better ↑" if higher_is_better else "Lower is Better ↓"
-    ax.set_title(f"{metric_name} Comparison ({direction})", fontsize=14, fontweight="bold")
+    ax.set_title(
+        f"{metric_name} Comparison ({direction})", fontsize=14, fontweight="bold"
+    )
     ax.set_ylabel(metric_name)
     ax.set_xticks(x)
     ax.set_xticklabels(categories, rotation=45, ha="right")
@@ -570,7 +599,14 @@ def plot_summary_table(all_results, save_path):
     if not model_names:
         return
 
-    metric_keys = ["Image-AUROC", "Pixel-AUROC", "Image-AP", "Pixel-AP", "Inference Time (ms)", "FPS"]
+    metric_keys = [
+        "Image-AUROC",
+        "Pixel-AUROC",
+        "Image-AP",
+        "Pixel-AP",
+        "Inference Time (ms)",
+        "FPS",
+    ]
 
     # 計算每個模型的平均指標
     avg_data = {}
@@ -588,7 +624,12 @@ def plot_summary_table(all_results, save_path):
     # 繪製表格
     fig, ax = plt.subplots(figsize=(max(12, len(model_names) * 2.5), 5))
     ax.axis("off")
-    ax.set_title("Average Benchmark Results Across All Categories", fontsize=14, fontweight="bold", pad=20)
+    ax.set_title(
+        "Average Benchmark Results Across All Categories",
+        fontsize=14,
+        fontweight="bold",
+        pad=20,
+    )
 
     col_labels = ["Method"] + metric_keys
     table_data = []
@@ -657,8 +698,16 @@ def generate_csv_report(all_results, save_path):
         model_names.update(cat_results.keys())
     model_names = sorted(model_names)
 
-    metric_keys = ["Image-AUROC", "Pixel-AUROC", "Image-AP", "Pixel-AP",
-                    "Inference Time (ms)", "Inference Std (ms)", "FPS", "Params"]
+    metric_keys = [
+        "Image-AUROC",
+        "Pixel-AUROC",
+        "Image-AP",
+        "Pixel-AP",
+        "Inference Time (ms)",
+        "Inference Std (ms)",
+        "FPS",
+        "Params",
+    ]
 
     with open(save_path, "w") as f:
         # Header
@@ -666,7 +715,10 @@ def generate_csv_report(all_results, save_path):
 
         for category in sorted(all_results.keys()):
             for model_name in model_names:
-                if model_name in all_results[category] and all_results[category][model_name] is not None:
+                if (
+                    model_name in all_results[category]
+                    and all_results[category][model_name] is not None
+                ):
                     m = all_results[category][model_name]
                     vals = [str(m.get(k, "N/A")) for k in metric_keys]
                     f.write(f"{category},{model_name},{','.join(vals)}\n")
@@ -678,7 +730,10 @@ def generate_csv_report(all_results, save_path):
             for k in metric_keys:
                 values = []
                 for cat_results in all_results.values():
-                    if model_name in cat_results and cat_results[model_name] is not None:
+                    if (
+                        model_name in cat_results
+                        and cat_results[model_name] is not None
+                    ):
                         val = cat_results[model_name].get(k, None)
                         if val is not None:
                             values.append(val)
@@ -729,20 +784,26 @@ def main(args):
         for model_name, wrapper, bench_fn in models:
             print(f"\n  ⏱️  Benchmark: {model_name}")
             try:
-                metrics = bench_fn(wrapper, args.data_root, category, device, args.n_repeat)
+                metrics = bench_fn(
+                    wrapper, args.data_root, category, device, args.n_repeat
+                )
             except Exception as e:
                 print(f"    ❌ Benchmark 失敗: {e}")
                 metrics = None
 
             if metrics:
                 all_results[category][model_name] = metrics
-                print(f"    Image-AUROC: {metrics['Image-AUROC']:.4f}  |  "
-                      f"Pixel-AUROC: {metrics['Pixel-AUROC']:.4f}  |  "
-                      f"Image-AP: {metrics['Image-AP']:.4f}  |  "
-                      f"Pixel-AP: {metrics['Pixel-AP']:.4f}")
-                print(f"    Inference: {metrics['Inference Time (ms)']:.2f} ms  |  "
-                      f"FPS: {metrics['FPS']:.1f}  |  "
-                      f"Params: {metrics['Params']:,}")
+                print(
+                    f"    Image-AUROC: {metrics['Image-AUROC']:.4f}  |  "
+                    f"Pixel-AUROC: {metrics['Pixel-AUROC']:.4f}  |  "
+                    f"Image-AP: {metrics['Image-AP']:.4f}  |  "
+                    f"Pixel-AP: {metrics['Pixel-AP']:.4f}"
+                )
+                print(
+                    f"    Inference: {metrics['Inference Time (ms)']:.2f} ms  |  "
+                    f"FPS: {metrics['FPS']:.1f}  |  "
+                    f"Params: {metrics['Params']:,}"
+                )
 
         # 釋放記憶體
         del models
@@ -766,7 +827,14 @@ def main(args):
         model_names.update(cat_results.keys())
     model_names = [m for m in MODEL_DISPLAY.keys() if m in model_names]
 
-    metric_keys = ["Image-AUROC", "Pixel-AUROC", "Image-AP", "Pixel-AP", "Inference Time (ms)", "FPS"]
+    metric_keys = [
+        "Image-AUROC",
+        "Pixel-AUROC",
+        "Image-AP",
+        "Pixel-AP",
+        "Inference Time (ms)",
+        "FPS",
+    ]
 
     # 每類別的詳細表
     for category in sorted(all_results.keys()):
@@ -815,18 +883,42 @@ def main(args):
     # ── 生成圖表 ──
     print(f"\n  📊 生成比較圖表...")
 
-    plot_metric_comparison(all_results, "Image-AUROC",
-                           os.path.join(save_root, "comparison_image_auroc.png"), higher_is_better=True)
-    plot_metric_comparison(all_results, "Pixel-AUROC",
-                           os.path.join(save_root, "comparison_pixel_auroc.png"), higher_is_better=True)
-    plot_metric_comparison(all_results, "Image-AP",
-                           os.path.join(save_root, "comparison_image_ap.png"), higher_is_better=True)
-    plot_metric_comparison(all_results, "Pixel-AP",
-                           os.path.join(save_root, "comparison_pixel_ap.png"), higher_is_better=True)
-    plot_metric_comparison(all_results, "Inference Time (ms)",
-                           os.path.join(save_root, "comparison_inference_time.png"), higher_is_better=False)
-    plot_metric_comparison(all_results, "FPS",
-                           os.path.join(save_root, "comparison_fps.png"), higher_is_better=True)
+    plot_metric_comparison(
+        all_results,
+        "Image-AUROC",
+        os.path.join(save_root, "comparison_image_auroc.png"),
+        higher_is_better=True,
+    )
+    plot_metric_comparison(
+        all_results,
+        "Pixel-AUROC",
+        os.path.join(save_root, "comparison_pixel_auroc.png"),
+        higher_is_better=True,
+    )
+    plot_metric_comparison(
+        all_results,
+        "Image-AP",
+        os.path.join(save_root, "comparison_image_ap.png"),
+        higher_is_better=True,
+    )
+    plot_metric_comparison(
+        all_results,
+        "Pixel-AP",
+        os.path.join(save_root, "comparison_pixel_ap.png"),
+        higher_is_better=True,
+    )
+    plot_metric_comparison(
+        all_results,
+        "Inference Time (ms)",
+        os.path.join(save_root, "comparison_inference_time.png"),
+        higher_is_better=False,
+    )
+    plot_metric_comparison(
+        all_results,
+        "FPS",
+        os.path.join(save_root, "comparison_fps.png"),
+        higher_is_better=True,
+    )
 
     plot_summary_table(all_results, os.path.join(save_root, "summary_table.png"))
 
@@ -843,8 +935,10 @@ def main(args):
         json_safe[cat] = {}
         for model, metrics in cat_results.items():
             if metrics is not None:
-                json_safe[cat][model] = {k: float(v) if isinstance(v, (np.floating, float)) else int(v)
-                                         for k, v in metrics.items()}
+                json_safe[cat][model] = {
+                    k: float(v) if isinstance(v, (np.floating, float)) else int(v)
+                    for k, v in metrics.items()
+                }
     with open(json_path, "w") as f:
         json.dump(json_safe, f, indent=2)
     print(f"  📄 JSON 結果: {json_path}")
@@ -862,35 +956,51 @@ if __name__ == "__main__":
         description="統一 Benchmark：比較所有異常檢測模型在 MVTec 上的綜合表現"
     )
     parser.add_argument(
-        "--data_root", type=str, default="./data-mvtec/mvtec",
+        "--data_root",
+        type=str,
+        default="./mvtec",
         help="MVTec 資料集根目錄",
     )
     parser.add_argument(
-        "--anomalib_dir", type=str, default="./anomalib_results",
+        "--anomalib_dir",
+        type=str,
+        default="./anomalib_results",
         help="Anomalib 訓練結果目錄 (含 checkpoint_registry.json)",
     )
     parser.add_argument(
-        "--draem_dir", type=str, default="./DRAEM_checkpoints",
+        "--draem_dir",
+        type=str,
+        default="./DRAEM_checkpoints",
         help="DRAEM Teacher checkpoint 目錄",
     )
     parser.add_argument(
-        "--student_dir", type=str, default="./student_model_checkpoints",
+        "--student_dir",
+        type=str,
+        default="./student_model_checkpoints",
         help="Student (Ours) checkpoint 目錄",
     )
     parser.add_argument(
-        "--save_dir", type=str, default="./benchmark_results",
+        "--save_dir",
+        type=str,
+        default="./benchmark_results",
         help="結果儲存目錄",
     )
     parser.add_argument(
-        "--categories", nargs="+", default=None,
+        "--categories",
+        nargs="+",
+        default=None,
         help="指定 MVTec 類別 (預設全部15類)",
     )
     parser.add_argument(
-        "--gpu_id", type=int, default=-2,
+        "--gpu_id",
+        type=int,
+        default=-2,
         help="GPU ID (-2: auto, -1: CPU)",
     )
     parser.add_argument(
-        "--n_repeat", type=int, default=3,
+        "--n_repeat",
+        type=int,
+        default=3,
         help="推論重複次數 (取平均，預設 3)",
     )
 
