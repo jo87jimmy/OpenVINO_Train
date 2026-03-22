@@ -17,12 +17,14 @@ import shutil
 import argparse
 from pathlib import Path
 
-import torch
-
 # ── Anomalib imports ──
-from anomalib.data import MVTec
+from anomalib.data import MVTecAD
 from anomalib.models import Patchcore, Cflow, ReverseDistillation, EfficientAd
 from anomalib.engine import Engine
+
+# ── Torchvision transforms ──
+from torchvision.transforms.v2 import Compose, Resize, ToDtype, Normalize
+import torch
 
 # =====================================================================
 # 常數定義
@@ -62,14 +64,18 @@ def train_single(model_name, category, data_root, output_dir, device_args):
     # ── 建立模型 ──
     model = model_class()
 
-    # ── 建立 MVTec DataModule ──
-    datamodule = MVTec(
+    # ── 建立 MVTecAD DataModule ──
+    transform = Compose([
+        Resize(IMG_SIZE),
+    ])
+    datamodule = MVTecAD(
         root=data_root,
         category=category,
-        image_size=IMG_SIZE,
         train_batch_size=32,
         eval_batch_size=32,
         num_workers=4,
+        train_transform=transform,
+        eval_transform=transform,
     )
 
     # ── 訓練輸出路徑 ──

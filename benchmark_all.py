@@ -43,7 +43,7 @@ from model_unet import ReconstructiveSubNetwork, DiscriminativeSubNetwork
 from data_loader import MVTecDRAEM_Test_Visual_Dataset
 
 # ── Anomalib ──
-from anomalib.data import MVTec
+from anomalib.data import MVTecAD
 from anomalib.models import Patchcore, Cflow, ReverseDistillation, EfficientAd
 from anomalib.engine import Engine
 

@@ -1,0 +1,16 @@
+# Core ML frameworks
+torch>=2.0
+torchvision>=0.15
+
+# Anomaly detection
+anomalib>=2.1.0
+
+# Metrics & scientific computing
+numpy
+scikit-learn
+
+# Visualization
+matplotlib
+
+# OpenVINO (optional, for inference optimization)
+# openvino
