@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python main.py --help)",
-      "Bash(python -c \"import torch; import sys; print\\(''Python:'', sys.version\\); print\\(''PyTorch:'', torch.__version__\\); print\\(''CUDA available:'', torch.cuda.is_available\\(\\)\\)\")"
+      "Bash(python -c \"import torch; import sys; print\\(''Python:'', sys.version\\); print\\(''PyTorch:'', torch.__version__\\); print\\(''CUDA available:'', torch.cuda.is_available\\(\\)\\)\")",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:anomalib.readthedocs.io)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
