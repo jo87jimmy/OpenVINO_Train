@@ -314,7 +314,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--categories",
         nargs="+",
-        default=None,
+        default="bottle",
         help="要訓練的 MVTec 類別 (預設全部15類)",
     )
     parser.add_argument(
