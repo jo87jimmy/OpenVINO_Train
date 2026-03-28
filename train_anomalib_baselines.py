@@ -3,10 +3,19 @@
 使用 Anomalib 訓練 Baseline 模型 (PatchCore, CFlow, RD4AD, EfficientAD)
 在 MVTec Anomaly Detection 資料集上進行簡單訓練，產生權重檔供 benchmark 使用。
 
-Usage:
+支援 Kaggle Notebook 環境自動偵測。
+
+Usage (CLI):
     python train_anomalib_baselines.py --data_root ./mvtec --output_dir ./anomalib_results
     python train_anomalib_baselines.py --data_root ./mvtec --models PatchCore RD4AD
     python train_anomalib_baselines.py --data_root ./mvtec --categories bottle carpet
+
+Usage (Kaggle Notebook):
+    from train_anomalib_baselines import train_all_kaggle
+    registry = train_all_kaggle(
+        models=["PatchCore", "RD4AD"],
+        categories=["bottle", "carpet"],
+    )
 """
 
 import os
@@ -25,6 +34,15 @@ from anomalib.engine import Engine
 # ── Torchvision transforms ──
 from torchvision.transforms.v2 import Resize
 import torch
+
+# =====================================================================
+# 環境偵測
+# =====================================================================
+IS_KAGGLE = os.path.exists("/kaggle/working")
+
+# Kaggle 預設路徑
+KAGGLE_DATA_ROOT = "/kaggle/input/mvtec-ad"  # 依實際 dataset slug 調整
+KAGGLE_OUTPUT_DIR = "/kaggle/working/anomalib_results"
 
 # =====================================================================
 # 常數定義
@@ -58,11 +76,23 @@ MODEL_REGISTRY = {
 
 IMG_SIZE = (256, 256)
 
+# Kaggle 環境建議的保守參數 (T4/P100 16GB VRAM, /dev/shm 受限)
+KAGGLE_BATCH_SIZE = 16
+KAGGLE_NUM_WORKERS = 2
+
 
 # =====================================================================
 # 訓練函數
 # =====================================================================
-def train_single(model_name, category, data_root, output_dir, device_args):
+def train_single(
+    model_name,
+    category,
+    data_root,
+    output_dir,
+    device_args,
+    batch_size=32,
+    num_workers=4,
+):
     """
     訓練單一模型在單一類別上。
     回傳: best checkpoint 路徑 (str) 或 None（若失敗）
@@ -80,9 +110,9 @@ def train_single(model_name, category, data_root, output_dir, device_args):
     datamodule = MVTecAD(
         root=data_root,
         category=category,
-        train_batch_size=32,
-        eval_batch_size=32,
-        num_workers=4,
+        train_batch_size=batch_size,
+        eval_batch_size=batch_size,
+        num_workers=num_workers,
         augmentations=Resize(IMG_SIZE),
     )
 
@@ -169,12 +199,22 @@ def train_all(args):
     # 記錄所有 checkpoint 路徑
     checkpoint_registry = {}
 
+    # Kaggle 環境使用保守參數
+    batch_size = KAGGLE_BATCH_SIZE if IS_KAGGLE else 32
+    num_workers = KAGGLE_NUM_WORKERS if IS_KAGGLE else 4
+
     total_start = time.time()
     for model_name in models:
         checkpoint_registry[model_name] = {}
         for category in categories:
             ckpt = train_single(
-                model_name, category, args.data_root, args.output_dir, device_args
+                model_name,
+                category,
+                args.data_root,
+                args.output_dir,
+                device_args,
+                batch_size=batch_size,
+                num_workers=num_workers,
             )
             checkpoint_registry[model_name][category] = ckpt
 
@@ -211,7 +251,43 @@ def train_all(args):
 
 
 # =====================================================================
-# Main
+# Kaggle Notebook 入口 (不需要 argparse)
+# =====================================================================
+def train_all_kaggle(
+    data_root=None,
+    output_dir=None,
+    models=None,
+    categories=None,
+    precision=None,
+):
+    """
+    Kaggle Notebook 專用入口函數，無需 argparse。
+
+    Usage (在 Kaggle Notebook cell 中):
+        from train_anomalib_baselines import train_all_kaggle
+
+        # 訓練指定模型與類別
+        registry = train_all_kaggle(
+            models=["PatchCore", "RD4AD"],
+            categories=["bottle", "carpet"],
+        )
+
+        # 訓練全部 (注意時間限制)
+        registry = train_all_kaggle()
+    """
+    args = argparse.Namespace(
+        data_root=data_root or (KAGGLE_DATA_ROOT if IS_KAGGLE else "./mvtec"),
+        output_dir=output_dir
+        or (KAGGLE_OUTPUT_DIR if IS_KAGGLE else "./anomalib_results"),
+        models=models,
+        categories=categories,
+        precision=precision,
+    )
+    return train_all(args)
+
+
+# =====================================================================
+# Main (CLI 入口)
 # =====================================================================
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -220,19 +296,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_root",
         type=str,
-        default="./mvtec",
+        default=KAGGLE_DATA_ROOT if IS_KAGGLE else "./mvtec",
         help="MVTec 資料集根目錄 (包含各類別資料夾)",
     )
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="./anomalib_results",
+        default=KAGGLE_OUTPUT_DIR if IS_KAGGLE else "./anomalib_results",
         help="訓練結果與 checkpoint 輸出目錄",
     )
     parser.add_argument(
         "--models",
         nargs="+",
-        default=None,
+        default="PatchCore",
         help="要訓練的模型 (預設全部): PatchCore CFlow RD4AD EfficientAD",
     )
     parser.add_argument(
