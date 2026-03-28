@@ -127,12 +127,18 @@ def train_single(
     os.makedirs(run_dir, exist_ok=True)
 
     # ── 建立 Engine (基於 Lightning Trainer) ──
+    # PatchCore 是 memory-bank 方法，無 optimizer，不支援 AMP precision
+    engine_device_args = {
+        k: v
+        for k, v in device_args.items()
+        if not (k == "precision" and model_name == "PatchCore")
+    }
     engine = Engine(
         max_epochs=max_epochs,
         accelerator="auto",
         devices=1,
         default_root_dir=run_dir,
-        **device_args,
+        **engine_device_args,
     )
 
     # ── 訓練 ──
@@ -308,13 +314,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--models",
         nargs="+",
-        default="PatchCore",
+        default=None,
         help="要訓練的模型 (預設全部): PatchCore CFlow RD4AD EfficientAD",
     )
     parser.add_argument(
         "--categories",
         nargs="+",
-        default="bottle",
+        default=None,
         help="要訓練的 MVTec 類別 (預設全部15類)",
     )
     parser.add_argument(
