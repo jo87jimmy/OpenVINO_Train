@@ -76,6 +76,14 @@ MODEL_REGISTRY = {
 
 IMG_SIZE = (256, 256)
 
+# 每個模型的建議 batch size（EfficientAD 必須為 1，其餘可較大）
+MODEL_BATCH_SIZE = {
+    "PatchCore": 32,
+    "CFlow": 16,
+    "RD4AD": 32,
+    "EfficientAD": 1,
+}
+
 # Kaggle 環境建議的保守參數 (T4/P100 16GB VRAM, /dev/shm 受限)
 KAGGLE_BATCH_SIZE = 16
 KAGGLE_NUM_WORKERS = 2
@@ -206,12 +214,14 @@ def train_all(args):
     checkpoint_registry = {}
 
     # Kaggle 環境使用保守參數
-    batch_size = KAGGLE_BATCH_SIZE if IS_KAGGLE else 32
     num_workers = KAGGLE_NUM_WORKERS if IS_KAGGLE else 4
 
     total_start = time.time()
     for model_name in models:
         checkpoint_registry[model_name] = {}
+        # 根據模型選擇 batch size（EfficientAD 必須為 1）
+        default_bs = MODEL_BATCH_SIZE.get(model_name, 32)
+        batch_size = min(default_bs, KAGGLE_BATCH_SIZE) if IS_KAGGLE else default_bs
         for category in categories:
             ckpt = train_single(
                 model_name,
