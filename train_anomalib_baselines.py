@@ -124,6 +124,10 @@ def train_single(
         augmentations=Resize(IMG_SIZE),
     )
 
+    # ── EfficientAD 強制 batch_size=1（部分 anomalib 版本忽略建構參數）──
+    if model_name == "EfficientAD":
+        datamodule.train_batch_size = 1
+
     # ── 若本地資料已存在，跳過下載 (避免 HF Hub 404 錯誤) ──
     local_data_path = Path(data_root) / category
     if local_data_path.exists() and (local_data_path / "train").exists():
